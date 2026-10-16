@@ -31,3 +31,20 @@ def test_recovery_retries_transient_simulated_failure(client, service):
     assert response.status_code == 200
     assert response.json()["status"] == "succeeded"
     assert response.json()["attempts"] == 2
+
+
+def test_deterministic_analysis_is_offline_and_structured(client, service):
+    client.post(f"/api/services/{service.id}/telemetry/simulate", json={"scenario": "degraded"})
+    incident = client.get(f"/api/incidents?service_id={service.id}").json()["items"][0]
+
+    response = client.post(f"/api/incidents/{incident['id']}/analysis")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "deterministic-mock"
+    assert payload["observed_facts"]
+    assert payload["hypotheses"]
+    assert payload["diagnostic_steps"]
+    assert payload["recommendations"]
+    assert 0 <= payload["confidence"] <= 1
+    assert payload["limitations"] == ["No external logs, traces, or infrastructure signals are available in local demo mode."]

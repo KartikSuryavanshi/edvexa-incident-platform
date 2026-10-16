@@ -50,17 +50,35 @@ Compose requires tokens in `.env`; the example values are placeholders only. Kee
 ## Manual backend development
 
 ```bash
-cd backend
+cp ../.env.example ../.env
+# Edit ../.env and replace every generate-* placeholder.
+set -a
+. ../.env
+set +a
+export DATABASE_URL="postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test]'
-export DATABASE_URL="postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
 alembic upgrade head
 python -m app.seed
 uvicorn app.main:app --reload
 ```
 
 For isolated unit tests, the existing fixture uses an in-memory SQLite database. Production and Compose configuration remain PostgreSQL-backed.
+
+## Database schema
+
+| Table | Purpose |
+|---|---|
+| `services` | Monitored service identity, environment, health status, and owner team. |
+| `health_checks` | Synthetic health-check definitions associated with services. |
+| `telemetry_samples` | Timestamped latency, error rate, availability, resource, and heartbeat measurements. |
+| `incidents` | Deduplicated reliability incidents, severity, lifecycle status, and assignment. |
+| `incident_events` | Append-only incident timeline with actor, event type, timestamp, and JSON metadata. |
+| `recovery_actions` | Approval state, idempotency key, retry count, outcome, and duration for simulated actions. |
+| `analysis_results` | Persisted structured deterministic incident-analysis responses. |
+
+Alembic migrations `0001_initial` through `0005_incident_assignment` create and evolve this schema.
 
 ## Demo walkthrough
 
@@ -102,13 +120,17 @@ docker compose exec backend alembic current
 docker compose exec backend pytest -q
 ```
 
-The backend verification currently passes with `13 passed`. The frontend verification passes with `2` Vitest tests, a clean typecheck, a successful Vite production build, and `npm audit --omit=dev --audit-level=high` reporting no production vulnerabilities. Docker and PostgreSQL integration checks require a local Docker engine and are listed separately because they cannot be simulated by the SQLite unit-test fixture.
+The backend verification currently passes with `17 passed`. The frontend verification passes with `2` Vitest tests, a clean typecheck, a successful Vite production build, and `npm audit --omit=dev --audit-level=high` reporting no production vulnerabilities. Docker and PostgreSQL integration checks require a local Docker engine and are listed separately because they cannot be simulated by the SQLite unit-test fixture.
 
 The API exposes `/api/live` for process liveness, `/api/ready` for database readiness, and `/api/metrics` for simple Prometheus text metrics. The dashboard consumes the API URL from `VITE_API_URL`; the default browser-visible value is `http://localhost:8000/api`.
 
 ## Security and limitations
 
-Inputs are validated with Pydantic, query sizes are bounded, SQLAlchemy parameterized queries are used, CORS is configured explicitly, role-protected state changes use bearer tokens, idempotency keys protect simulated actions, and AI output is informational only. The browser SSE client uses the explicitly documented `access_token` query parameter because native `EventSource` cannot set headers; use HTTPS and a short-lived token for any non-demo deployment. This MVP does not include distributed SSE, real logs/traces, real infrastructure integrations, or a hosted model provider. Those are deliberate boundaries for a safe local screening demonstration.
+Implemented for this submission: simulated telemetry and thresholds, PostgreSQL persistence, incident deduplication and lifecycle auditing, approval-gated simulated recovery, deterministic offline structured analysis, bearer-token roles, SSE updates, Docker Compose setup, seed data, and automated backend/frontend checks. AI analysis is deterministic and offline by default; it does not call an external provider or invent logs. Recovery is always simulated and never changes real infrastructure. Public deployment is intentionally omitted because deployment is optional in the assignment.
+
+Known limitations: there is no service-registration API, responder workload balancing, real log/trace ingestion, hosted LLM adapter, chart-based dashboard, distributed SSE broker, or production-grade expiring user authentication. The dashboard's public/read-only mode uses a viewer token; operator/admin tokens must remain server-side or local-only. These are deliberate MVP trade-offs, not implemented production integrations.
+
+Inputs are validated with Pydantic, query sizes are bounded, SQLAlchemy parameterized queries are used, CORS is configured explicitly, role-protected state changes use bearer tokens, and idempotency keys protect simulated actions. The browser SSE client uses the documented `access_token` query parameter because native `EventSource` cannot set headers; use HTTPS and short-lived credentials for any non-demo deployment.
 
 ## Project layout
 

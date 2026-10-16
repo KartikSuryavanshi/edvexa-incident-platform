@@ -54,7 +54,7 @@ cd backend
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test]'
-export DATABASE_URL='postgresql+psycopg://edvexa:edvexa@localhost:5432/edvexa'
+export DATABASE_URL="postgresql+psycopg://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
 alembic upgrade head
 python -m app.seed
 uvicorn app.main:app --reload

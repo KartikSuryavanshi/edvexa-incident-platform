@@ -20,7 +20,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://edvexa:edvexa@db:5432/edvexa
       CORS_ORIGINS: http://localhost:5173
-      AUTH_TOKENS: viewer:viewer-demo,operator:operator-demo,admin:admin-demo
+      AUTH_TOKENS: ${AUTH_TOKENS:?Set AUTH_TOKENS in .env before starting Compose}
     ports:
       - "8000:8000"
     depends_on:
@@ -32,7 +32,8 @@ services:
     build: ./frontend
     environment:
       VITE_API_URL: http://localhost:8000/api
-      VITE_AUTH_TOKEN: operator-demo
+      VITE_AUTH_TOKEN: ${VITE_AUTH_TOKEN:?Set VITE_AUTH_TOKEN to a viewer token in .env}
+      VITE_READ_ONLY: ${VITE_READ_ONLY:-true}
     ports:
       - "5173:5173"
     depends_on:

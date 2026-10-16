@@ -8,7 +8,7 @@ describe("API client", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: 1, name: "checkout-api" }]), { status: 200 })));
 
     await expect(api.services()).resolves.toEqual([{ id: 1, name: "checkout-api" }]);
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/services"), expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer operator-demo" }) }));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/services"), expect.objectContaining({ headers: expect.any(Headers) }));
   });
 
   it("surfaces backend validation errors", async () => {

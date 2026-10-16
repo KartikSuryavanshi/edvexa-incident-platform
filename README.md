@@ -35,6 +35,7 @@ Prerequisites: Docker Desktop (or Docker Engine with Compose) and Git.
 
 ```bash
 cp .env.example .env
+# Replace every generate-* value with locally generated random values.
 docker compose up --build
 ```
 
@@ -44,7 +45,7 @@ The backend startup sequence validates any legacy unversioned schema, runs `alem
 
 The bootstrap also recognizes one verified legacy development shape: the six `0001_initial` tables plus `health_checks`, created by an earlier `create_all()` startup before the incident-engine columns were migrated. It stamps only `0001_initial`; the idempotent `0002_incident_engine` migration adds its missing columns and preserves the existing `health_checks` table. Any other partial or extra-column shape is rejected without modification.
 
-Compose supplies local-only demo tokens: `viewer-demo`, `operator-demo`, and `admin-demo`. Override `AUTH_TOKENS` and `VITE_AUTH_TOKEN` for local development; never use these demo values outside a private local environment.
+Compose requires tokens in `.env`; the example values are placeholders only. Keep the Vercel deployment read-only with a viewer token. Never put an operator or admin token in a public frontend build because Vite embeds `VITE_*` values into browser JavaScript.
 
 ## Manual backend development
 
@@ -73,7 +74,7 @@ For isolated unit tests, the existing fixture uses an in-memory SQLite database.
 ## API examples
 
 ```bash
-export EDVEXA_TOKEN=operator-demo
+export EDVEXA_TOKEN="$OPERATOR_TOKEN"
 curl -H "Authorization: Bearer $EDVEXA_TOKEN" http://localhost:8000/api/services
 curl -X POST http://localhost:8000/api/services/1/telemetry/simulate \
   -H "Authorization: Bearer $EDVEXA_TOKEN" -H 'content-type: application/json' -d '{"scenario":"unhealthy","count":2}'

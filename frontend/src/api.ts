@@ -1,9 +1,12 @@
 import type { Analysis, Incident, IncidentEvent, Service, Telemetry } from "./types";
 
 const base = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
-const token = import.meta.env.VITE_AUTH_TOKEN ?? "operator-demo";
+const token = import.meta.env.VITE_AUTH_TOKEN ?? "";
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${base}${path}`, { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(options?.headers ?? {}) }, ...options });
+  const headers = new Headers(options?.headers);
+  headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${base}${path}`, { ...options, headers });
   if (!response.ok) throw new Error((await response.json().catch(() => null))?.detail ?? `Request failed (${response.status})`);
   return response.json() as Promise<T>;
 }

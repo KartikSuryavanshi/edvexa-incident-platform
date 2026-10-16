@@ -9,7 +9,7 @@ ALLOWED_TRANSITIONS = {
     "open": {"acknowledged", "investigating", "resolved"},
     "acknowledged": {"investigating", "resolved"},
     "investigating": {"resolved"},
-    "resolved": {"reopened"},
+    "resolved": {"reopened", "closed"},
     "reopened": {"acknowledged", "investigating", "resolved"},
 }
 

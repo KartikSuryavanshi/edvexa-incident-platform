@@ -19,6 +19,7 @@ class Service(Base):
     name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     environment: Mapped[str] = mapped_column(String(40), default="demo")
     status: Mapped[str] = mapped_column(String(20), default="healthy")
+    owner_team: Mapped[str] = mapped_column(String(120), default="platform-oncall")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     telemetry: Mapped[list["TelemetrySample"]] = relationship(back_populates="service")
     health_checks: Mapped[list["HealthCheck"]] = relationship(back_populates="service")
@@ -45,6 +46,10 @@ class TelemetrySample(Base):
     latency_ms: Mapped[float] = mapped_column(Float)
     error_rate: Mapped[float] = mapped_column(Float)
     availability: Mapped[float] = mapped_column(Float)
+    cpu_usage: Mapped[float] = mapped_column(Float, default=0.0)
+    memory_usage: Mapped[float] = mapped_column(Float, default=0.0)
+    request_volume: Mapped[float] = mapped_column(Float, default=0.0)
+    heartbeat_ok: Mapped[bool] = mapped_column(default=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     service: Mapped[Service] = relationship(back_populates="telemetry")
 
@@ -58,6 +63,7 @@ class Incident(Base):
     deduplication_key: Mapped[str] = mapped_column(String(128), index=True)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text)
+    assigned_to: Mapped[str | None] = mapped_column(String(120), nullable=True)
     severity: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(20), default="open")
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -86,6 +92,9 @@ class RecoveryAction(Base):
     idempotency_key: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(30), default="pending")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

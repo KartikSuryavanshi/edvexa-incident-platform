@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
+from app.core.security import CurrentUser, current_user
 from app.db.models import Service, TelemetrySample
 from app.schemas.service import ServiceHealthRead, ServiceRead, TelemetryRead
 from app.services.monitoring import evaluate_health
@@ -18,12 +19,12 @@ def get_service_or_404(db: Session, service_id: int) -> Service:
 
 
 @router.get("", response_model=list[ServiceRead])
-def list_services(db: Session = Depends(get_db)):
+def list_services(db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
     return db.scalars(select(Service).options(selectinload(Service.health_checks)).order_by(Service.name)).all()
 
 
 @router.get("/{service_id}/health", response_model=ServiceHealthRead)
-def service_health(service_id: int, db: Session = Depends(get_db)):
+def service_health(service_id: int, db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
     service = get_service_or_404(db, service_id)
     latest = db.scalar(
         select(TelemetrySample)
@@ -37,7 +38,7 @@ def service_health(service_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{service_id}/telemetry", response_model=list[TelemetryRead])
-def recent_telemetry(service_id: int, limit: int = 20, db: Session = Depends(get_db)):
+def recent_telemetry(service_id: int, limit: int = 20, db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
     get_service_or_404(db, service_id)
     if not 1 <= limit <= 100:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="limit must be between 1 and 100")

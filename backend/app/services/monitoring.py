@@ -6,9 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Incident, IncidentEvent, Service, TelemetrySample, utcnow
+from app.core.config import settings
 
-DEGRADED_THRESHOLDS = {"latency_ms": 300.0, "error_rate": 0.05, "availability": 0.995}
-UNHEALTHY_THRESHOLDS = {"latency_ms": 1000.0, "error_rate": 0.20, "availability": 0.95}
+DEGRADED_THRESHOLDS = {"latency_ms": settings.threshold_degraded_latency_ms, "error_rate": settings.threshold_degraded_error_rate, "availability": settings.threshold_degraded_availability}
+UNHEALTHY_THRESHOLDS = {"latency_ms": settings.threshold_unhealthy_latency_ms, "error_rate": settings.threshold_unhealthy_error_rate, "availability": settings.threshold_unhealthy_availability}
 ACTIVE_STATUSES = {"open", "acknowledged", "investigating", "reopened"}
 
 
@@ -33,6 +34,8 @@ def evaluate_health(sample: TelemetrySample) -> HealthEvaluation:
         unhealthy_reasons.append(f"availability {sample.availability:.2%}")
     elif sample.availability < DEGRADED_THRESHOLDS["availability"]:
         degraded_reasons.append(f"availability {sample.availability:.2%}")
+    if sample.heartbeat_ok is False:
+        unhealthy_reasons.append("heartbeat missing")
     if unhealthy_reasons:
         return HealthEvaluation("unhealthy", ", ".join(unhealthy_reasons))
     if degraded_reasons:
@@ -90,6 +93,10 @@ def detect_incident(db: Session, service: Service, sample: TelemetrySample, eval
         "error_rate": sample.error_rate,
         "availability": sample.availability,
         "health_state": evaluation.state,
+        "cpu_usage": sample.cpu_usage,
+        "memory_usage": sample.memory_usage,
+        "request_volume": sample.request_volume,
+        "heartbeat_ok": sample.heartbeat_ok,
     }
     if active_incident:
         active_incident.updated_at = utcnow()
@@ -103,6 +110,7 @@ def detect_incident(db: Session, service: Service, sample: TelemetrySample, eval
         deduplication_key=deduplication_key,
         title=f"{evaluation.state.title()} health for {service.name}",
         description=f"{service.name} is {evaluation.state}: {evaluation.reason}.",
+        assigned_to=service.owner_team,
         severity=severity,
         status="open",
     )
@@ -127,5 +135,9 @@ def make_simulated_sample(service_id: int, scenario: str, sequence: int = 0) -> 
         latency_ms=latency_ms,
         error_rate=error_rate,
         availability=availability,
+        cpu_usage={"healthy": 35.0, "degraded": 78.0, "unhealthy": 96.0}[scenario],
+        memory_usage={"healthy": 42.0, "degraded": 74.0, "unhealthy": 94.0}[scenario],
+        request_volume={"healthy": 120.0, "degraded": 95.0, "unhealthy": 20.0}[scenario],
+        heartbeat_ok=scenario != "unhealthy",
         observed_at=datetime.now(timezone.utc) + timedelta(microseconds=sequence),
     )

@@ -1,6 +1,7 @@
 import os
 
-os.environ["DATABASE_URL"] = "sqlite:///./test_edvexa.db"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["AUTH_TOKENS"] = "viewer:viewer-test,operator:operator-test,admin:admin-test"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,7 +21,7 @@ def reset_database():
 
 @pytest.fixture
 def client():
-    with TestClient(app) as test_client:
+    with TestClient(app, headers={"Authorization": "Bearer operator-test"}) as test_client:
         yield test_client
 
 

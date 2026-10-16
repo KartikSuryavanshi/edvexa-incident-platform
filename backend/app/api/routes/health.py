@@ -11,3 +11,14 @@ router = APIRouter(tags=["health"])
 def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "ok", "database": "ok"}
+
+
+@router.get("/live")
+def liveness():
+    return {"status": "alive"}
+
+
+@router.get("/ready")
+def readiness(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ready"}

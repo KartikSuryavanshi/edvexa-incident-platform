@@ -1,9 +1,8 @@
-from app.core.database import SessionLocal, engine
-from app.db.models import Base, HealthCheck, Service
+from app.core.database import SessionLocal
+from app.db.models import HealthCheck, Service
 
 
 def seed():
-    Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         if db.query(Service).count() == 0:
             services = [

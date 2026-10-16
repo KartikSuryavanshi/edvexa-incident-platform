@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import CurrentUser, require_role
 from app.db.models import Service, TelemetrySample
 from app.schemas.service import TelemetryCreate, TelemetryRead, TelemetrySimulationRequest
 from app.services.monitoring import ingest_telemetry, make_simulated_sample
@@ -18,7 +19,7 @@ def get_service(db: Session, service_id: int) -> Service:
 
 
 @router.post("", response_model=TelemetryRead, status_code=status.HTTP_201_CREATED)
-def ingest(service_id: int, payload: TelemetryCreate, db: Session = Depends(get_db)):
+def ingest(service_id: int, payload: TelemetryCreate, db: Session = Depends(get_db), user: CurrentUser = Depends(require_role("operator", "admin"))):
     service = get_service(db, service_id)
     sample = TelemetrySample(service_id=service_id, **payload.model_dump(exclude_none=True))
     try:
@@ -32,7 +33,7 @@ def ingest(service_id: int, payload: TelemetryCreate, db: Session = Depends(get_
 
 
 @router.post("/simulate", response_model=list[TelemetryRead], status_code=status.HTTP_201_CREATED)
-def simulate(service_id: int, payload: TelemetrySimulationRequest, db: Session = Depends(get_db)):
+def simulate(service_id: int, payload: TelemetrySimulationRequest, db: Session = Depends(get_db), user: CurrentUser = Depends(require_role("operator", "admin"))):
     service = get_service(db, service_id)
     samples = []
     try:

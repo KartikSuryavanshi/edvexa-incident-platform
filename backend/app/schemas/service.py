@@ -20,6 +20,7 @@ class ServiceRead(BaseModel):
     name: str
     environment: str
     status: str
+    owner_team: str
     created_at: datetime
     health_checks: list[HealthCheckRead] = []
 
@@ -35,6 +36,10 @@ class TelemetryCreate(BaseModel):
     latency_ms: float = Field(ge=0, le=120_000)
     error_rate: float = Field(ge=0, le=1)
     availability: float = Field(ge=0, le=1)
+    cpu_usage: float = Field(default=0.0, ge=0, le=100)
+    memory_usage: float = Field(default=0.0, ge=0, le=100)
+    request_volume: float = Field(default=0.0, ge=0, le=1_000_000)
+    heartbeat_ok: bool = True
     observed_at: datetime | None = None
 
 
@@ -62,6 +67,7 @@ class IncidentRead(BaseModel):
     fingerprint: str
     title: str
     description: str
+    assigned_to: str | None
     severity: str
     status: str
     opened_at: datetime
@@ -69,7 +75,7 @@ class IncidentRead(BaseModel):
 
 
 class IncidentTransitionRequest(BaseModel):
-    status: str = Field(pattern="^(acknowledged|investigating|resolved|reopened)$")
+    status: str = Field(pattern="^(acknowledged|investigating|resolved|reopened|closed)$")
     message: str | None = Field(default=None, max_length=500)
 
 
